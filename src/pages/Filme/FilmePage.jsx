@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TextInput from '../../components/inputs/Input';
 import Button from '../../components/buttons/Button';
+import Modal from '../../components/modals/Modal';
 
 const FilmePage = () => {
   const [filmes, setFilmes] = useState(() => {
@@ -13,8 +14,8 @@ const FilmePage = () => {
   const [duracao, setDuracao] = useState('');
   const [imagem, setImagem] = useState('');
   const [editIndex, setEditIndex] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null); // Controle do modal
 
-  // ✅ Sempre que filmes mudar, atualiza no localStorage
   useEffect(() => {
     if (filmes.length > 0) {
       localStorage.setItem('filmes', JSON.stringify(filmes));
@@ -57,10 +58,9 @@ const FilmePage = () => {
   };
 
   const excluirFilme = (index) => {
-    if (window.confirm('Deseja realmente excluir esse filme?')) {
-      const novosFilmes = filmes.filter((_, i) => i !== index);
-      setFilmes(novosFilmes);
-    }
+    const novosFilmes = filmes.filter((_, i) => i !== index);
+    setFilmes(novosFilmes);
+    setDeleteIndex(null); // Fecha o modal
   };
 
   return (
@@ -163,10 +163,20 @@ const FilmePage = () => {
                   </button>
                   <button
                     className="btn btn-sm btn-danger"
-                    onClick={() => excluirFilme(index)}
+                    data-bs-toggle="modal"
+                    data-bs-target={`#confirmDelete-${index}`}
+                    onClick={() => setDeleteIndex(index)}
                   >
                     <i className="bi bi-trash"></i>
                   </button>
+
+                  <Modal
+                    id={`confirmDelete-${index}`}
+                    titulo="Confirmar Exclusão"
+                    mensagem={`Deseja realmente excluir o filme "${filme.nome}"?`}
+                    onConfirm={() => excluirFilme(index)}
+                    textoBotao="Excluir"
+                  />
                 </td>
               </tr>
             ))}
