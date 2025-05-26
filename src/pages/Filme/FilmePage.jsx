@@ -1,0 +1,180 @@
+import React, { useEffect, useState } from 'react';
+import TextInput from '../../components/inputs/Input';
+import Button from '../../components/buttons/Button';
+
+const FilmePage = () => {
+  const [filmes, setFilmes] = useState(() => {
+    const dadosSalvos = localStorage.getItem('filmes');
+    return dadosSalvos ? JSON.parse(dadosSalvos) : [];
+  });
+
+  const [nome, setNome] = useState('');
+  const [genero, setGenero] = useState('');
+  const [duracao, setDuracao] = useState('');
+  const [imagem, setImagem] = useState('');
+  const [editIndex, setEditIndex] = useState(null);
+
+  // ✅ Sempre que filmes mudar, atualiza no localStorage
+  useEffect(() => {
+    if (filmes.length > 0) {
+      localStorage.setItem('filmes', JSON.stringify(filmes));
+    } else {
+      localStorage.removeItem('filmes');
+    }
+  }, [filmes]);
+
+  const limparFormulario = () => {
+    setNome('');
+    setGenero('');
+    setDuracao('');
+    setImagem('');
+    setEditIndex(null);
+  };
+
+  const salvarFilme = (e) => {
+    e.preventDefault();
+
+    const filme = { nome, genero, duracao, imagem };
+
+    if (editIndex !== null) {
+      const novosFilmes = [...filmes];
+      novosFilmes[editIndex] = filme;
+      setFilmes(novosFilmes);
+    } else {
+      setFilmes([...filmes, filme]);
+    }
+
+    limparFormulario();
+  };
+
+  const editarFilme = (index) => {
+    const filme = filmes[index];
+    setNome(filme.nome);
+    setGenero(filme.genero);
+    setDuracao(filme.duracao);
+    setImagem(filme.imagem);
+    setEditIndex(index);
+  };
+
+  const excluirFilme = (index) => {
+    if (window.confirm('Deseja realmente excluir esse filme?')) {
+      const novosFilmes = filmes.filter((_, i) => i !== index);
+      setFilmes(novosFilmes);
+    }
+  };
+
+  return (
+    <div className="container mt-4">
+      <h2>🎥 Gerenciar Filmes</h2>
+
+      <form onSubmit={salvarFilme}>
+        <TextInput
+          label="Nome: "
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="Digite o nome do filme"
+        />
+        <div className="mb-3">
+          <label className="form-label">Gênero:</label>
+          <select
+            className="form-select"
+            value={genero}
+            onChange={(e) => setGenero(e.target.value)}
+            required
+          >
+            <option value="">Selecione o gênero</option>
+            <option>Ação</option>
+            <option>Aventura</option>
+            <option>Comédia</option>
+            <option>Drama</option>
+            <option>Ficção Científica</option>
+            <option>Fantasia</option>
+            <option>Terror</option>
+            <option>Suspense</option>
+            <option>Romance</option>
+            <option>Musical</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">Duração (minutos):</label>
+          <input
+            type="number"
+            className="form-control"
+            value={duracao}
+            onChange={(e) => setDuracao(e.target.value)}
+            placeholder="Ex: 120"
+            min={1}
+            required
+          />
+        </div>
+        <TextInput
+          label="URL da Imagem: "
+          value={imagem}
+          onChange={(e) => setImagem(e.target.value)}
+          placeholder="Cole a URL da imagem do filme"
+        />
+
+        <Button
+          label={editIndex !== null ? 'Atualizar Filme' : 'Adicionar Filme'}
+        />
+      </form>
+
+      <hr />
+
+      <h4>Lista de Filmes</h4>
+      {filmes.length === 0 && <p>Nenhum filme cadastrado.</p>}
+
+      {filmes.length > 0 && (
+        <table className="table table-bordered">
+          <thead>
+            <tr>
+              <th>Imagem</th>
+              <th>Nome</th>
+              <th>Gênero</th>
+              <th>Duração</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filmes.map((filme, index) => (
+              <tr key={index}>
+                <td>
+                  {filme.imagem ? (
+                    <img
+                      src={filme.imagem}
+                      alt={filme.nome}
+                      width="80"
+                      height="120"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    'Sem imagem'
+                  )}
+                </td>
+                <td>{filme.nome}</td>
+                <td>{filme.genero}</td>
+                <td>{filme.duracao}</td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-warning me-2"
+                    onClick={() => editarFilme(index)}
+                  >
+                    <i className="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => excluirFilme(index)}
+                  >
+                    <i className="bi bi-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
+export default FilmePage;
