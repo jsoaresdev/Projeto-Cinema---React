@@ -114,7 +114,7 @@ const FilmePage = () => {
 
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-success"
           data-bs-toggle="modal"
           data-bs-target="#confirmSave"
         >
