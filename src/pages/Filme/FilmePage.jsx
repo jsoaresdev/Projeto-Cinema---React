@@ -14,7 +14,7 @@ const FilmePage = () => {
   const [duracao, setDuracao] = useState('');
   const [imagem, setImagem] = useState('');
   const [editIndex, setEditIndex] = useState(null);
-  const [deleteIndex, setDeleteIndex] = useState(null); // Controle do modal
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
   useEffect(() => {
     if (filmes.length > 0) {
@@ -32,9 +32,7 @@ const FilmePage = () => {
     setEditIndex(null);
   };
 
-  const salvarFilme = (e) => {
-    e.preventDefault();
-
+  const salvarFilme = () => {
     const filme = { nome, genero, duracao, imagem };
 
     if (editIndex !== null) {
@@ -60,14 +58,14 @@ const FilmePage = () => {
   const excluirFilme = (index) => {
     const novosFilmes = filmes.filter((_, i) => i !== index);
     setFilmes(novosFilmes);
-    setDeleteIndex(null); // Fecha o modal
+    setDeleteIndex(null);
   };
 
   return (
     <div className="container mt-4">
       <h2>🎥 Gerenciar Filmes</h2>
 
-      <form onSubmit={salvarFilme}>
+      <form onSubmit={(e) => e.preventDefault()}>
         <TextInput
           label="Nome: "
           value={nome}
@@ -114,10 +112,23 @@ const FilmePage = () => {
           placeholder="Cole a URL da imagem do filme"
         />
 
-        <Button
-          label={editIndex !== null ? 'Atualizar Filme' : 'Adicionar Filme'}
-        />
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#confirmSave"
+        >
+          {editIndex !== null ? 'Atualizar Filme' : 'Adicionar Filme'}
+        </button>
       </form>
+
+      <Modal
+        id="confirmSave"
+        titulo={editIndex !== null ? "Confirmar Atualização" : "Confirmar Adição"}
+        mensagem={`Deseja realmente ${editIndex !== null ? "atualizar" : "adicionar"} o filme "${nome}"?`}
+        onConfirm={salvarFilme}
+        textoBotao={editIndex !== null ? "Atualizar" : "Adicionar"}
+      />
 
       <hr />
 
@@ -169,7 +180,6 @@ const FilmePage = () => {
                   >
                     <i className="bi bi-trash"></i>
                   </button>
-
                   <Modal
                     id={`confirmDelete-${index}`}
                     titulo="Confirmar Exclusão"

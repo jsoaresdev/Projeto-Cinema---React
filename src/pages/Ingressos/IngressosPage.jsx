@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TextInput from '../../components/inputs/Input';
 import Button from '../../components/buttons/Button';
-
+import Modal from '../../components/modals/Modal';
 
 const IngressosPage = () => {
   const [ingressos, setIngressos] = useState(() => {
@@ -14,10 +14,12 @@ const IngressosPage = () => {
 
   const [sessao, setSessao] = useState('');
   const [comprador, setComprador] = useState('');
+  const [cpf, setCpf] = useState('');
   const [quantidade, setQuantidade] = useState('');
+  const [pagamento, setPagamento] = useState('');
   const [editIndex, setEditIndex] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
-  // Carregar sessões e salas cadastradas
   useEffect(() => {
     const dadosSessoes = localStorage.getItem('sessoes');
     const dadosSalas = localStorage.getItem('salas');
@@ -26,7 +28,6 @@ const IngressosPage = () => {
     if (dadosSalas) setSalas(JSON.parse(dadosSalas));
   }, []);
 
-  // Salvar ingressos no localStorage sempre que mudar
   useEffect(() => {
     if (ingressos.length > 0) {
       localStorage.setItem('ingressos', JSON.stringify(ingressos));
@@ -38,31 +39,55 @@ const IngressosPage = () => {
   const limparFormulario = () => {
     setSessao('');
     setComprador('');
+    setCpf('');
     setQuantidade('');
+    setPagamento('');
     setEditIndex(null);
   };
 
+  const validarCPF = (cpf) => {
+    cpf = cpf.replace(/[^\d]+/g, '');
+    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += parseInt(cpf.charAt(i)) * (10 - i);
+    let resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(9))) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += parseInt(cpf.charAt(i)) * (11 - i);
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    return resto === parseInt(cpf.charAt(10));
+  };
+
   const obterSalaDaSessao = (sessaoSelecionada) => {
-    const salaNome = sessaoSelecionada.split(' - ')[1]; 
+    const salaNome = sessaoSelecionada.split(' - ')[1];
     return salas.find((s) => s.nome === salaNome);
   };
 
   const calcularIngressosVendidos = (sessaoSelecionada) => {
     return ingressos
       .filter((i, index) => {
-        if (editIndex !== null && index === editIndex) return false; 
+        if (editIndex !== null && index === editIndex) return false;
         return i.sessao === sessaoSelecionada;
       })
       .reduce((total, i) => total + parseInt(i.quantidade), 0);
   };
 
-  const salvarIngresso = (e) => {
-    e.preventDefault();
-
+  const salvarIngresso = () => {
     const sala = obterSalaDaSessao(sessao);
-
     if (!sala) {
       alert('Erro: Sala não encontrada para esta sessão.');
+      return;
+    }
+
+    if (!validarCPF(cpf)) {
+      alert('CPF inválido!');
+      return;
+    }
+
+    if (!pagamento) {
+      alert('Selecione uma forma de pagamento.');
       return;
     }
 
@@ -77,7 +102,7 @@ const IngressosPage = () => {
       return;
     }
 
-    const ingresso = { sessao, comprador, quantidade: quantidadeSolicitada };
+    const ingresso = { sessao, comprador, cpf, quantidade: quantidadeSolicitada, pagamento };
 
     if (editIndex !== null) {
       const novosIngressos = [...ingressos];
@@ -94,22 +119,23 @@ const IngressosPage = () => {
     const ingresso = ingressos[index];
     setSessao(ingresso.sessao);
     setComprador(ingresso.comprador);
+    setCpf(ingresso.cpf);
     setQuantidade(ingresso.quantidade);
+    setPagamento(ingresso.pagamento);
     setEditIndex(index);
   };
 
   const excluirIngresso = (index) => {
-    if (window.confirm('Deseja realmente excluir este ingresso?')) {
-      const novosIngressos = ingressos.filter((_, i) => i !== index);
-      setIngressos(novosIngressos);
-    }
+    const novosIngressos = ingressos.filter((_, i) => i !== index);
+    setIngressos(novosIngressos);
+    setDeleteIndex(null);
   };
 
   return (
     <div className="container mt-4">
       <h2>🎫 Venda de ingressos</h2>
 
-      <form onSubmit={salvarIngresso}>
+      <form onSubmit={(e) => e.preventDefault()}>
         <div className="mb-3">
           <label className="form-label">Sessão</label>
           <select
@@ -138,16 +164,51 @@ const IngressosPage = () => {
         />
 
         <TextInput
+          label="CPF do Comprador"
+          value={cpf}
+          onChange={(e) => setCpf(e.target.value)}
+          placeholder="Digite o CPF (somente números)"
+        />
+
+        <TextInput
           label="Quantidade de Ingressos"
           value={quantidade}
           onChange={(e) => setQuantidade(e.target.value)}
           placeholder="Ex: 2"
         />
 
-        <Button
-          label={editIndex !== null ? 'Atualizar Ingresso' : 'Adicionar Ingresso'}
-        />
+        <div className="mb-3">
+          <label className="form-label">Forma de Pagamento</label>
+          <select
+            className="form-select"
+            value={pagamento}
+            onChange={(e) => setPagamento(e.target.value)}
+            required
+          >
+            <option value="">Selecione uma opção</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="credito">Cartão de Crédito</option>
+            <option value="debito">Cartão de Débito</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#modalSalvar"
+        >
+          {editIndex !== null ? 'Atualizar Ingresso' : 'Adicionar Ingresso'}
+        </button>
       </form>
+
+      <Modal
+        id="modalSalvar"
+        titulo={editIndex !== null ? 'Confirmar Atualização' : 'Confirmar Adição'}
+        mensagem={`Deseja realmente ${editIndex !== null ? 'atualizar' : 'adicionar'} este ingresso?`}
+        onConfirm={salvarIngresso}
+        textoBotao={editIndex !== null ? 'Atualizar' : 'Adicionar'}
+      />
 
       <hr />
 
@@ -160,7 +221,9 @@ const IngressosPage = () => {
             <tr>
               <th>Sessão</th>
               <th>Comprador</th>
-              <th>Quantidade</th>
+              <th>CPF</th>
+              <th>Qtd</th>
+              <th>Pagamento</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -169,7 +232,9 @@ const IngressosPage = () => {
               <tr key={index}>
                 <td>{ingresso.sessao}</td>
                 <td>{ingresso.comprador}</td>
+                <td>{ingresso.cpf}</td>
                 <td>{ingresso.quantidade}</td>
+                <td>{ingresso.pagamento}</td>
                 <td>
                   <button
                     className="btn btn-sm btn-warning me-2"
@@ -179,10 +244,19 @@ const IngressosPage = () => {
                   </button>
                   <button
                     className="btn btn-sm btn-danger"
-                    onClick={() => excluirIngresso(index)}
+                    data-bs-toggle="modal"
+                    data-bs-target={`#confirmDelete-${index}`}
+                    onClick={() => setDeleteIndex(index)}
                   >
                     <i className="bi bi-trash"></i>
                   </button>
+                  <Modal
+                    id={`confirmDelete-${index}`}
+                    titulo="Confirmar Exclusão"
+                    mensagem={`Deseja realmente excluir o ingresso para "${ingresso.sessao}"?`}
+                    onConfirm={() => excluirIngresso(index)}
+                    textoBotao="Excluir"
+                  />
                 </td>
               </tr>
             ))}

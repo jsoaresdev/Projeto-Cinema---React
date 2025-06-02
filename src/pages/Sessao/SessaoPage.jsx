@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TextInput from '../../components/inputs/Input';
 import Button from '../../components/buttons/Button';
-
+import Modal from '../../components/modals/Modal';
 
 const SessaoPage = () => {
   const [sessoes, setSessoes] = useState(() => {
@@ -16,8 +16,8 @@ const SessaoPage = () => {
   const [sala, setSala] = useState('');
   const [horario, setHorario] = useState('');
   const [editIndex, setEditIndex] = useState(null);
+  const [deleteIndex, setDeleteIndex] = useState(null);
 
-  // Carregar filmes e salas existentes
   useEffect(() => {
     const dadosFilmes = localStorage.getItem('filmes');
     const dadosSalas = localStorage.getItem('salas');
@@ -26,7 +26,6 @@ const SessaoPage = () => {
     if (dadosSalas) setSalas(JSON.parse(dadosSalas));
   }, []);
 
-  // Salvar no localStorage quando sessoes mudar
   useEffect(() => {
     if (sessoes.length > 0) {
       localStorage.setItem('sessoes', JSON.stringify(sessoes));
@@ -42,11 +41,8 @@ const SessaoPage = () => {
     setEditIndex(null);
   };
 
-  const salvarSessao = (e) => {
-    e.preventDefault();
-
+  const salvarSessao = () => {
     const sessao = { filme, sala, horario };
-
     if (editIndex !== null) {
       const novasSessoes = [...sessoes];
       novasSessoes[editIndex] = sessao;
@@ -54,7 +50,6 @@ const SessaoPage = () => {
     } else {
       setSessoes([...sessoes, sessao]);
     }
-
     limparFormulario();
   };
 
@@ -67,17 +62,16 @@ const SessaoPage = () => {
   };
 
   const excluirSessao = (index) => {
-    if (window.confirm('Deseja realmente excluir essa sessão?')) {
-      const novasSessoes = sessoes.filter((_, i) => i !== index);
-      setSessoes(novasSessoes);
-    }
+    const novasSessoes = sessoes.filter((_, i) => i !== index);
+    setSessoes(novasSessoes);
+    setDeleteIndex(null);
   };
 
   return (
     <div className="container mt-4">
       <h2>🕑 Gerenciar Sessões</h2>
 
-      <form onSubmit={salvarSessao}>
+      <form onSubmit={(e) => e.preventDefault()}>
         <div className="mb-3">
           <label className="form-label">Filme</label>
           <select
@@ -88,9 +82,7 @@ const SessaoPage = () => {
           >
             <option value="">Selecione um filme</option>
             {filmes.map((f, index) => (
-              <option key={index} value={f.nome}>
-                {f.nome}
-              </option>
+              <option key={index} value={f.nome}>{f.nome}</option>
             ))}
           </select>
         </div>
@@ -105,9 +97,7 @@ const SessaoPage = () => {
           >
             <option value="">Selecione uma sala</option>
             {salas.map((s, index) => (
-              <option key={index} value={s.nome}>
-                {s.nome}
-              </option>
+              <option key={index} value={s.nome}>{s.nome}</option>
             ))}
           </select>
         </div>
@@ -123,10 +113,23 @@ const SessaoPage = () => {
           />
         </div>
 
-        <Button
-          label={editIndex !== null ? 'Atualizar Sessão' : 'Adicionar Sessão'}
-        />
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-bs-toggle="modal"
+          data-bs-target="#modalSalvar"
+        >
+          {editIndex !== null ? 'Atualizar Sessão' : 'Adicionar Sessão'}
+        </button>
       </form>
+
+      <Modal
+        id="modalSalvar"
+        titulo={editIndex !== null ? 'Confirmar Atualização' : 'Confirmar Adição'}
+        mensagem={`Deseja realmente ${editIndex !== null ? 'atualizar' : 'adicionar'} a sessão?`}
+        onConfirm={salvarSessao}
+        textoBotao={editIndex !== null ? 'Atualizar' : 'Adicionar'}
+      />
 
       <hr />
 
@@ -158,10 +161,19 @@ const SessaoPage = () => {
                   </button>
                   <button
                     className="btn btn-sm btn-danger"
-                    onClick={() => excluirSessao(index)}
+                    data-bs-toggle="modal"
+                    data-bs-target={`#confirmDelete-${index}`}
+                    onClick={() => setDeleteIndex(index)}
                   >
                     <i className="bi bi-trash"></i>
                   </button>
+                  <Modal
+                    id={`confirmDelete-${index}`}
+                    titulo="Confirmar Exclusão"
+                    mensagem={`Deseja realmente excluir a sessão "${sessao.filme}" na sala "${sessao.sala}"?`}
+                    onConfirm={() => excluirSessao(index)}
+                    textoBotao="Excluir"
+                  />
                 </td>
               </tr>
             ))}
